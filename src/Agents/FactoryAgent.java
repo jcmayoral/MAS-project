@@ -4,45 +4,50 @@ import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import Behaviour.CustomerOrder;
 import Behaviour.FactoryAgentOneshotBehaviour;
 import jade.core.AID;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.proto.ContractNetInitiator;
+import jade.util.leap.HashMap;
 import jade.domain.FIPANames;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Vector;
 import java.util.Enumeration;
 
 @SuppressWarnings("serial")
 public class FactoryAgent extends Agent {
 
-	private Vector<AID> TransportAgents = new Vector<AID>();
+	private List<AID> transportAgents = new ArrayList<AID>();
+	private List<CustomerOrder> orderQueue = new ArrayList<CustomerOrder>();
 
 	protected void setup() {
 
 		System.out.println("Factory Agent:" + getAID().getName() + "is Initialized");
 
 		// register for service
-		// DFAgentDescription dfd = new DFAgentDescription();
-		// dfd.setName(getAID());
-		// ServiceDescription sd = new ServiceDescription();
-		// sd.setType("Transport-Items");
-		// sd.setName("Transport-Items");
-		// dfd.addServices(sd);
-		//
-		// try
-		// {
-		// DFService.register(this, dfd);
-		// }
-		// catch(FIPAException fe){
-		// fe.printStackTrace();
-		// }
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("Order-Items");
+		sd.setName("Place-Orders");
+		dfd.addServices(sd);
+
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
 
 		// Fetch the list of available agents
 		addBehaviour(new OneShotBehaviour(this) {
@@ -58,10 +63,10 @@ public class FactoryAgent extends Agent {
 				// Fetch Agent List
 				try {
 					DFAgentDescription[] result = DFService.search(myAgent, template);
-					//System.out.println(result.length);
-					//TransportAgents = new AID[result.length];
+					// System.out.println(result.length);
+					// TransportAgents = new AID[result.length];
 					for (int i = 0; i < result.length; ++i) {
-						TransportAgents.add(result[i].getName());
+						transportAgents.add(result[i].getName());
 					}
 				} catch (FIPAException fe) {
 					fe.printStackTrace();
@@ -70,40 +75,90 @@ public class FactoryAgent extends Agent {
 			}
 		});
 
-		addBehaviour(new TickerBehaviour(this, 1000) {
+		// prepare order queue
+		addBehaviour(new UpdateOrderQueue());
+		// complete the orders
+		addBehaviour(new TickerBehaviour(this, 100) {
 			protected void onTick() {
-				// Fill the CFP message
-				ACLMessage msg = new ACLMessage(ACLMessage.CFP);
-				for (int i = 0; i < TransportAgents.size(); ++i) {
-					msg.addReceiver(TransportAgents.get(i));
-				}
-				msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
-				// We want to receive a reply in 10 secs
-				// msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-				msg.setContent("dummy-action");
+				if (orderQueue.size() != 0) {
 
-				addBehaviour(new ContractNetInit(this.getAgent(), msg));
+					//for (int i = 0; i < orderQueue.size(); i++) 
+					{
+						// Fill the CFP message
+						ACLMessage msg = new ACLMessage(ACLMessage.CFP);
+						for (int j = 0; j < transportAgents.size(); ++j) {
+							msg.addReceiver(transportAgents.get(j));
+						}
+						msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
+						// We want to receive a reply in 10 secs
+						// msg.setReplyByDate(new
+						// Date(System.currentTimeMillis() +
+						// 10000));
+						// msg.setContent(order);
+						try {
+							msg.setContentObject(orderQueue.get(0));
+							
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						addBehaviour(new ContractNetInit(this.getAgent(), msg));
+
+					}
+
+				} else {
+					System.out.println("Order queue is empty");
+				}
+
 			}
 		});
-
 
 	}
 
 	protected void takeDown() {
 		System.out.println("Factory Agent:" + getAID().getName() + " is Terminated");
-		// try{
-		// DFService.deregister(this);
-		// }catch(FIPAException fe){
-		// fe.printStackTrace();
-		// }
-	}
-
-	public void PrintAgentList() {
-		for (int i = 0; i < TransportAgents.size(); i++) {
-			System.out.println("TransportAgent["+(i+1)+"]:"+ TransportAgents.get(i));
+		try {
+			DFService.deregister(this);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
 		}
 	}
 
+	public void PrintAgentList() {
+		for (int i = 0; i < transportAgents.size(); i++) {
+			System.out.println("TransportAgent[" + (i + 1) + "]:" + transportAgents.get(i));
+		}
+	}
+
+	// Inner class to handle order from the customers
+	private class UpdateOrderQueue extends CyclicBehaviour {
+
+		@Override
+		public void action() {
+			// TODO Auto-generated method stub
+			ACLMessage msg = myAgent.receive();
+			if (msg != null) {
+				if (msg.getPerformative() == ACLMessage.REQUEST) {
+					AID sender = msg.getSender();
+					CustomerOrder order;
+					try {
+						order = (CustomerOrder) msg.getContentObject();
+						System.out.println("Received order: " + order + "from :" + sender.getLocalName());
+						orderQueue.add(order);
+					} catch (UnreadableException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+				}
+			} else {
+				block();
+			}
+		}
+
+	}
+
+	// Inner class to handle contract net communication
 	private class ContractNetInit extends ContractNetInitiator {
 
 		public ContractNetInit(Agent a, ACLMessage cfp) {
@@ -139,6 +194,7 @@ public class FactoryAgent extends Agent {
 			// responses.size()) + " responses");
 			// }
 			// Evaluate proposals.
+			System.out.println("handleAllResponses entered");
 			int bestProposal = 10;
 			AID bestProposer = null;
 			ACLMessage accept = null;
@@ -167,6 +223,22 @@ public class FactoryAgent extends Agent {
 		protected void handleInform(ACLMessage inform) {
 			System.out
 					.println("Agent " + inform.getSender().getName() + " successfully performed the requested action");
+			
+			//remove order from order queue
+			try {
+				CustomerOrder order = (CustomerOrder) inform.getContentObject(); 
+				orderQueue.remove(order);
+	
+				//inform customer about the delivery
+				AID customer = order.getSenderAID();
+				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+				msg.addReceiver(customer);
+				myAgent.send(msg);
+				
+			} catch (UnreadableException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 	}
