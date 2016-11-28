@@ -58,7 +58,7 @@ public class FactoryAgent extends Agent {
 				// Fetch Agent List
 				try {
 					DFAgentDescription[] result = DFService.search(myAgent, template);
-					System.out.println(result.length);
+					//System.out.println(result.length);
 					//TransportAgents = new AID[result.length];
 					for (int i = 0; i < result.length; ++i) {
 						TransportAgents.add(result[i].getName());
@@ -66,7 +66,7 @@ public class FactoryAgent extends Agent {
 				} catch (FIPAException fe) {
 					fe.printStackTrace();
 				}
-
+				PrintAgentList();
 			}
 		});
 
@@ -100,7 +100,7 @@ public class FactoryAgent extends Agent {
 
 	public void PrintAgentList() {
 		for (int i = 0; i < TransportAgents.size(); i++) {
-			System.out.println("TransportAgent[i+1]: " + TransportAgents.get(i));
+			System.out.println("TransportAgent["+(i+1)+"]:"+ TransportAgents.get(i));
 		}
 	}
 
