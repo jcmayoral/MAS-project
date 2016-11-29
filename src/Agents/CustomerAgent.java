@@ -15,6 +15,7 @@ import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 
 public class CustomerAgent extends Agent{
 	
@@ -79,7 +80,8 @@ public class CustomerAgent extends Agent{
 				}
 				break;
 			case 1:{
-				ACLMessage msg = myAgent.receive();
+				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+				ACLMessage msg = myAgent.receive(mt);
 				if(msg != null){
 					if (msg.getPerformative() == ACLMessage.INFORM) {
 						System.out.println("Delivery completed");

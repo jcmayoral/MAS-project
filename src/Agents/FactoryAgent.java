@@ -5,6 +5,7 @@ import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
+import jade.core.behaviours.ThreadedBehaviourFactory;
 import jade.core.behaviours.TickerBehaviour;
 import Behaviour.CustomerOrder;
 import Behaviour.FactoryAgentOneshotBehaviour;
@@ -33,7 +34,7 @@ public class FactoryAgent extends Agent {
 
 	private List<AID> transportAgents = new ArrayList<AID>();
 	private PriorityQueue<CustomerOrder> orderQueue = new PriorityQueue<CustomerOrder>();
-
+	private ThreadedBehaviourFactory tbf = new 	ThreadedBehaviourFactory();
 	protected void setup() {
 
 		System.out.println("Factory Agent:" + getAID().getName() + "is Initialized");
@@ -151,8 +152,8 @@ public class FactoryAgent extends Agent {
 		protected void onTick() {
 			// TODO Auto-generated method stub
 			if (orderQueue.size() != 0) {
-
-				for (CustomerOrder order : orderQueue) {
+				CustomerOrder order = orderQueue.element();
+				//for (CustomerOrder order : orderQueue) {
 					// Fill the CFP message
 					ACLMessage msg = new ACLMessage(ACLMessage.CFP);
 					for (int j = 0; j < transportAgents.size(); ++j) {
@@ -163,7 +164,7 @@ public class FactoryAgent extends Agent {
 					// msg.setReplyByDate(new
 					// Date(System.currentTimeMillis() +
 					// 10000));
-					// msg.setContent("dummy order");
+					 //msg.setContent("dummy order");
 					try {
 						msg.setContentObject(order);
 
@@ -171,55 +172,17 @@ public class FactoryAgent extends Agent {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					addBehaviour(new ContractNetInit(this.getAgent(), msg));
-					//orderQueue.remove(order);
-				}
+//					Behaviour b = new ContractNetInit(this.getAgent(), msg);
+//					addBehaviour(tbf.wrap(b));
+					myAgent.addBehaviour(new ContractNetInit(this.getAgent(), msg));
+					orderQueue.remove(order);
+				//}
 			} else {
 				System.out.println("Order queue is empty");
 			}
 		}
 
-//		@Override
-//		public void action() {
-//			// TODO Auto-generated method stub
-//			if (orderQueue.size() != 0) {
-//				
-//				for(CustomerOrder order : orderQueue){
-//					// Fill the CFP message
-//					ACLMessage msg = new ACLMessage(ACLMessage.CFP);
-//					for (int j = 0; j < transportAgents.size(); ++j) {
-//						msg.addReceiver(transportAgents.get(j));
-//					}
-//					msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
-//					// We want to receive a reply in 10 secs
-//					// msg.setReplyByDate(new
-//					// Date(System.currentTimeMillis() +
-//					// 10000));
-//					// msg.setContent("dummy order");
-//					try {
-//						msg.setContentObject(order);
-//						
-//					} catch (IOException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
-//					addBehaviour(new ContractNetInit(this.getAgent(), msg));	
-//					orderQueue.remove(order);
-//				}
-//				
-//				//orderQueue.clear();
-//			}else{
-//				System.out.println("Order queue is empty");
-//			}
-//		}
-
-//		@Override
-//		public boolean done() {
-//			// TODO Auto-generated method stub
-//			System.out.println("All orders fulfilled");
-//			return false;
-//		}
-		
+	
 	}
 
 	// Inner class to handle order from the customers
@@ -228,7 +191,8 @@ public class FactoryAgent extends Agent {
 		@Override
 		public void action() {
 			// TODO Auto-generated method stub
-			ACLMessage msg = myAgent.receive();
+			MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+			ACLMessage msg = myAgent.receive(mt);
 			if (msg != null) {
 				if (msg.getPerformative() == ACLMessage.REQUEST) {
 					AID sender = msg.getSender();
@@ -241,11 +205,10 @@ public class FactoryAgent extends Agent {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+					block();
 
 				}
-			} else {
-				block();
-			}
+			} 
 		}
 
 	}
@@ -317,20 +280,20 @@ public class FactoryAgent extends Agent {
 					.println("Agent " + inform.getSender().getName() + " successfully performed the requested action");
 			
 			//remove order from order queue
-//			try {
-//				CustomerOrder order = (CustomerOrder) inform.getContentObject(); 
-//				orderQueue.remove(order);
-//	
-//				//inform customer about the delivery
-//				AID customer = order.getSenderAID();
-//				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-//				msg.addReceiver(customer);
-//				myAgent.send(msg);
-//				
-//			} catch (UnreadableException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
+			try {
+				CustomerOrder order = (CustomerOrder) inform.getContentObject(); 
+				orderQueue.remove(order);
+	
+				//inform customer about the delivery
+				AID customer = order.getSenderAID();
+				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+				msg.addReceiver(customer);
+				myAgent.send(msg);
+				
+			} catch (UnreadableException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 	}
