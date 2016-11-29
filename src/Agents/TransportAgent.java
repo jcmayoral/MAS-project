@@ -85,15 +85,15 @@ public class TransportAgent extends Agent {
 					System.out.println("Agent " + getLocalName() + ": Action successfully performed");
 					ACLMessage inform = accept.createReply();
 					inform.setPerformative(ACLMessage.INFORM);
-					try {
-						inform.setContentObject(cfp.getContentObject());
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (UnreadableException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+//					try {
+//						inform.setContentObject(cfp.getContentObject());
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					} catch (UnreadableException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
 					return inform;
 				} else {
 					System.out.println("Agent " + getLocalName() + ": Action execution failed");
