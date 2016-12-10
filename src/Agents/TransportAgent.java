@@ -1,6 +1,7 @@
 package Agents;
 
 import java.io.IOException;
+import java.util.Random;
 
 import Behaviour.CustomerOrder;
 import jade.core.Agent;
@@ -119,13 +120,18 @@ public class TransportAgent extends Agent {
 
 	private int evaluateAction() {
 		// Simulate an evaluation by generating a random number
-		return (int) (Math.random() * 10);
+		Random r = new Random();
+		int Low = 1;
+		int High = 10;
+		int proposal = r.nextInt(High - Low) + Low;
+		return proposal;
+		
 	}
 
 	private boolean performAction() {
 		// Simulate action execution by generating a random number
 		try {
-			Thread.sleep(proposal);
+			Thread.sleep(proposal*1000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
