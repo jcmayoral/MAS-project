@@ -8,7 +8,9 @@ import java.util.Random;
 import Behaviour.CustomerOrder;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -27,6 +29,7 @@ public class TransportAgent extends Agent {
 
 	private int state = -1;
 	private int proposal;
+	private boolean isStockAvailable = true;
 	
 	private List<AID> stockAgents = new ArrayList<AID>();
 
@@ -75,6 +78,8 @@ public class TransportAgent extends Agent {
 			}
 		});
 
+		//check stock status
+		addBehaviour(new UpdateStockInfo(this,10000));
 		// setup contract net responder
 		MessageTemplate template = MessageTemplate.and(
 				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET),
@@ -93,10 +98,11 @@ public class TransportAgent extends Agent {
 					e.printStackTrace();
 				}
 
-				proposal = evaluateAction();
-				if (state == -1) {
+				
+				if (isStockAvailable) {
 					// We provide a proposal
-					state = 1;
+					//state = 1;
+					proposal = evaluateAction();
 					System.out.println("Agent " + getLocalName() + ": Proposing " + proposal);
 					ACLMessage propose = cfp.createReply();
 					propose.setPerformative(ACLMessage.PROPOSE);
@@ -151,6 +157,48 @@ public class TransportAgent extends Agent {
 		}
 	}
 	
+	// Inner class to handle order from the customers
+	private class UpdateStockInfo extends TickerBehaviour {
+
+		public UpdateStockInfo(Agent a, long period) {
+			super(a, period);
+			// TODO Auto-generated constructor stub
+		}
+
+		@Override
+		protected void onTick() {
+			// TODO Auto-generated method stub
+			int step = 0;
+			switch (step) {
+			case 0: {
+				ACLMessage checkStock = new ACLMessage(ACLMessage.REQUEST);
+				checkStock.addReceiver(stockAgents.get(0));
+				send(checkStock);
+				step = 1;
+			}
+				break;
+			case 1: {
+				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+				ACLMessage msg = myAgent.receive(mt);
+				if (msg != null) {
+					String status = msg.getContent();
+					if(status.compareTo("available") == 0){
+						isStockAvailable = true;
+					}
+					else{
+						isStockAvailable = false;
+					}
+				}
+				step = 0;
+			}
+				break;
+			}
+			
+		}
+
+
+	}
+	
 	public void PrintAgentList() {
 		for (int i = 0; i < stockAgents.size(); i++) {
 			System.out.println("StockAgent[" + (i + 1) + "]:" + stockAgents.get(i));
@@ -178,5 +226,6 @@ public class TransportAgent extends Agent {
 		// return (Math.random() > 0.2);
 		return true;
 	}
+	
 
 }
