@@ -1,10 +1,14 @@
 package Agents;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import Behaviour.CustomerOrder;
+import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -23,6 +27,8 @@ public class TransportAgent extends Agent {
 
 	private int state = -1;
 	private int proposal;
+	
+	private List<AID> stockAgents = new ArrayList<AID>();
 
 	protected void setup() {
 
@@ -41,6 +47,33 @@ public class TransportAgent extends Agent {
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
+		
+		
+		// Fetch the list of available Stock agents
+		addBehaviour(new OneShotBehaviour(this) {
+
+			@Override
+			public void action() {
+				// TODO Auto-generated method stub
+				DFAgentDescription template = new DFAgentDescription();
+				ServiceDescription sd = new ServiceDescription();
+				sd.setType("Stockpile-Info");
+				template.addServices(sd);
+
+				// Fetch Agent List
+				try {
+					DFAgentDescription[] result = DFService.search(myAgent, template);
+					// System.out.println(result.length);
+					// TransportAgents = new AID[result.length];
+					for (int i = 0; i < result.length; ++i) {
+						stockAgents.add(result[i].getName());
+					}
+				} catch (FIPAException fe) {
+					fe.printStackTrace();
+				}
+				PrintAgentList();
+			}
+		});
 
 		// setup contract net responder
 		MessageTemplate template = MessageTemplate.and(
@@ -115,6 +148,12 @@ public class TransportAgent extends Agent {
 			DFService.deregister(this);
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
+		}
+	}
+	
+	public void PrintAgentList() {
+		for (int i = 0; i < stockAgents.size(); i++) {
+			System.out.println("StockAgent[" + (i + 1) + "]:" + stockAgents.get(i));
 		}
 	}
 
