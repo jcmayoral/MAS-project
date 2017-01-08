@@ -48,7 +48,7 @@ public class CustomerAgent extends Agent{
 			}
 		});
 		
-		addBehaviour(new PlaceOrders());
+		addBehaviour(new PlaceOrder(this,5000));
 
 	}
 	
@@ -56,48 +56,29 @@ public class CustomerAgent extends Agent{
 		System.out.println("Customer Agent:"+getAID().getName()+"is Terminated");		
 	}
 	
-	private class PlaceOrders extends Behaviour{
-		private int step = 0;
-		@Override
-		public void action() {
-			// TODO Auto-generated method stub
-			switch (step) {
-			case 0: {
-				CustomerOrder order = getOrder();
-					try {
-						// place order to factory agents
-						ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-						msg.addReceiver(FactoryAgent);
-						msg.setLanguage("English");
-						msg.setContentObject(order);
-						send(msg);
-						step = 1;
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+	private class PlaceOrder extends TickerBehaviour {
 
-				}
-				break;
-			case 1:{
-				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-				ACLMessage msg = myAgent.receive(mt);
-				if(msg != null){
-					if (msg.getPerformative() == ACLMessage.INFORM) {
-						System.out.println("Delivery completed");
-						step = 2;
-						myAgent.doDelete();
-					}
-				}
-			}break;
-			}
-
+		public PlaceOrder(Agent a, long period) {
+			super(a, period);
+			// TODO Auto-generated constructor stub
 		}
 
 		@Override
-		public boolean done() {
+		protected void onTick() {
 			// TODO Auto-generated method stub
-			return (step == 2);
+			CustomerOrder order = getOrder();
+			try {
+				// place order to factory agents
+				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+				msg.addReceiver(FactoryAgent);
+				msg.setLanguage("English");
+				msg.setContentObject(order);
+				send(msg);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 		}
 		
 		private CustomerOrder getOrder() {
@@ -120,10 +101,83 @@ public class CustomerAgent extends Agent{
 			default:
 				break;
 			}
-			
-			return (new CustomerOrder(this.myAgent.getAID(),order));
+
+			return (new CustomerOrder(this.myAgent.getAID(), order));
 		}
-		
 	}
 
+
+
 }
+	
+//	private class PlaceOrders extends Behaviour{
+//		private int step = 0;
+//		@Override
+//		public void action() {
+//			// TODO Auto-generated method stub
+//			switch (step) {
+//			case 0: {
+//				CustomerOrder order = getOrder();
+//					try {
+//						// place order to factory agents
+//						ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+//						msg.addReceiver(FactoryAgent);
+//						msg.setLanguage("English");
+//						msg.setContentObject(order);
+//						send(msg);
+//						step = 1;
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//
+//				}
+//				break;
+//			case 1:{
+//				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+//				ACLMessage msg = myAgent.receive(mt);
+//				if(msg != null){
+//					if (msg.getPerformative() == ACLMessage.INFORM) {
+//						System.out.println("Delivery completed");
+//						step = 2;
+//						myAgent.doDelete();
+//					}
+//				}
+//			}break;
+//			}
+//
+//		}
+//
+//		@Override
+//		public boolean done() {
+//			// TODO Auto-generated method stub
+//			return (step == 2);
+//		}
+//		
+//		private CustomerOrder getOrder() {
+//			String order = null;
+//			Random r = new Random();
+//			int Low = 1;
+//			int High = 3;
+//			int orderType = r.nextInt(High - Low) + Low;
+//
+//			switch (orderType) {
+//
+//			case 1: {
+//				order = "Bearing";
+//			}
+//				break;
+//			case 2: {
+//				order = "Bearing-box";
+//			}
+//				break;
+//			default:
+//				break;
+//			}
+//			
+//			return (new CustomerOrder(this.myAgent.getAID(),order));
+//		}
+//		
+//	}
+//
+//}
