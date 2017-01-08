@@ -201,7 +201,7 @@ public class TransportAgent extends Agent {
 	
 	public void PrintAgentList() {
 		for (int i = 0; i < stockAgents.size(); i++) {
-			System.out.println("StockAgent[" + (i + 1) + "]:" + stockAgents.get(i));
+			System.out.println("StockAgent[" + (i + 1) + "]:" + stockAgents.get(i).getLocalName());
 		}
 	}
 
@@ -217,12 +217,12 @@ public class TransportAgent extends Agent {
 
 	private boolean performAction() {
 		// Simulate action execution by generating a random number
-		try {
-			Thread.sleep(proposal*1000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			Thread.sleep(proposal*1000);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		// return (Math.random() > 0.2);
 		return true;
 	}

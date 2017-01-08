@@ -33,8 +33,9 @@ import java.util.Enumeration;
 public class FactoryAgent extends Agent {
 
 	private List<AID> transportAgents = new ArrayList<AID>();
+	private List<AID> assemblyAgents = new ArrayList<AID>();
 	private PriorityQueue<CustomerOrder> orderQueue = new PriorityQueue<CustomerOrder>();
-	private ThreadedBehaviourFactory tbf = new 	ThreadedBehaviourFactory();
+	
 	protected void setup() {
 
 		System.out.println("Factory Agent:" + getAID().getName() + "is Initialized");
@@ -53,7 +54,7 @@ public class FactoryAgent extends Agent {
 			fe.printStackTrace();
 		}
 
-		// Fetch the list of available agents
+		// Fetch the list of available transport agents
 		addBehaviour(new OneShotBehaviour(this) {
 
 			@Override
@@ -75,9 +76,36 @@ public class FactoryAgent extends Agent {
 				} catch (FIPAException fe) {
 					fe.printStackTrace();
 				}
-				PrintAgentList();
+				//PrintAgentList();
 			}
 		});
+		
+		// Fetch the list of available Assembly agents
+		addBehaviour(new OneShotBehaviour(this) {
+
+			@Override
+			public void action() {
+				// TODO Auto-generated method stub
+				DFAgentDescription template = new DFAgentDescription();
+				ServiceDescription sd = new ServiceDescription();
+				sd.setType("Assemble-Bearing-Box");
+				template.addServices(sd);
+
+				// Fetch Agent List
+				try {
+					DFAgentDescription[] result = DFService.search(myAgent, template);
+					// System.out.println(result.length);
+					// TransportAgents = new AID[result.length];
+					for (int i = 0; i < result.length; ++i) {
+						assemblyAgents.add(result[i].getName());
+					}
+				} catch (FIPAException fe) {
+					fe.printStackTrace();
+				}
+				//PrintAgentList();
+			}
+		});
+		PrintAgentList();
 //	      SequentialBehaviour seq = new SequentialBehaviour(this);
 //	      addBehaviour( seq );
 //		// prepare order queue
@@ -136,7 +164,11 @@ public class FactoryAgent extends Agent {
 
 	public void PrintAgentList() {
 		for (int i = 0; i < transportAgents.size(); i++) {
-			System.out.println("TransportAgent[" + (i + 1) + "]:" + transportAgents.get(i));
+			System.out.println("TransportAgent[" + (i + 1) + "]:" + transportAgents.get(i).getLocalName());
+		}
+
+		for (int i = 0; i < assemblyAgents.size(); i++) {
+			System.out.println("AssemblyAgent[" + (i + 1) + "]:" + assemblyAgents.get(i).getLocalName());
 		}
 	}
 	
@@ -153,12 +185,20 @@ public class FactoryAgent extends Agent {
 			// TODO Auto-generated method stub
 			if (orderQueue.size() != 0) {
 				CustomerOrder order = orderQueue.element();
+				String orderType = order.getOrder();
 				//for (CustomerOrder order : orderQueue) {
 					// Fill the CFP message
 					ACLMessage msg = new ACLMessage(ACLMessage.CFP);
+				if (orderType.compareTo("Bearing") == 0) {
 					for (int j = 0; j < transportAgents.size(); ++j) {
 						msg.addReceiver(transportAgents.get(j));
 					}
+				}
+				else{
+					for (int j = 0; j < assemblyAgents.size(); ++j) {
+						msg.addReceiver(assemblyAgents.get(j));
+					}
+				}
 					msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
 					// We want to receive a reply in 10 secs
 					// msg.setReplyByDate(new
