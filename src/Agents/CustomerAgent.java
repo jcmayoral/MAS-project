@@ -21,10 +21,13 @@ public class CustomerAgent extends Agent{
 	
 	//private Vector<AID> FactoryAgents = new Vector<AID>();
 	private AID FactoryAgent;
+	private int interval = 5000;
 	
 	protected void setup() {
 		System.out.println("Customer Agent:"+getAID().getName()+"is Initialized");
-
+//		Object[] args = getArguments();
+//		String timeVal  = (String) args[0];
+//		interval = Integer.parseInt(timeVal);
 		// Fetch the list of available factory agents
 		addBehaviour(new OneShotBehaviour(this) {
 
@@ -48,7 +51,7 @@ public class CustomerAgent extends Agent{
 			}
 		});
 		
-		addBehaviour(new PlaceOrder(this,5000));
+		addBehaviour(new PlaceOrder(this,interval));
 
 	}
 	

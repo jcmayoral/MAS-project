@@ -34,7 +34,7 @@ public class FactoryAgent extends Agent {
 
 	private List<AID> transportAgents = new ArrayList<AID>();
 	private List<AID> assemblyAgents = new ArrayList<AID>();
-	private PriorityQueue<CustomerOrder> orderQueue = new PriorityQueue<CustomerOrder>();
+	private List<CustomerOrder> orderQueue = new ArrayList<CustomerOrder>();
 	
 	protected void setup() {
 
@@ -184,7 +184,7 @@ public class FactoryAgent extends Agent {
 		protected void onTick() {
 			// TODO Auto-generated method stub
 			if (orderQueue.size() != 0) {
-				CustomerOrder order = orderQueue.element();
+				CustomerOrder order = orderQueue.get(0);
 				String orderType = order.getOrder();
 				//for (CustomerOrder order : orderQueue) {
 					// Fill the CFP message
