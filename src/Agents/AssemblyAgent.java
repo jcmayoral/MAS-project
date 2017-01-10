@@ -11,6 +11,7 @@ import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -32,7 +33,7 @@ public class AssemblyAgent extends Agent{
 	private List<AID> assemblyPlaceList = new ArrayList<AID>();
 	
 	protected void setup(){
-		System.out.println("Assembly Agent:" + getAID().getName() + "is Initialized");
+		System.out.println("Assembly Agent:" + getAID().getName() + " is Initialized");
 
 		// Register Agent Services with DF
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -49,11 +50,35 @@ public class AssemblyAgent extends Agent{
 		}
 		
 		// Fetch the list of available Assembly places
-		addBehaviour(new OneShotBehaviour(this) {
-
-			@Override
-			public void action() {
-				// TODO Auto-generated method stub
+//		addBehaviour(new OneShotBehaviour(this) {
+//
+//			@Override
+//			public void action() {
+//				// TODO Auto-generated method stub
+//				DFAgentDescription template = new DFAgentDescription();
+//				ServiceDescription sd = new ServiceDescription();
+//				sd.setType("Forcefitting-machine-server");
+//				template.addServices(sd);
+//
+//				// Fetch Agent List
+//				try {
+//					DFAgentDescription[] result = DFService.search(myAgent, template);
+//					// System.out.println(result.length);
+//					// TransportAgents = new AID[result.length];
+//					for (int i = 0; i < result.length; ++i) {
+//						assemblyPlaceList.add(result[i].getName());
+//					}
+//				} catch (FIPAException fe) {
+//					fe.printStackTrace();
+//				}
+//				PrintAgentList();
+//			}
+//		});
+		
+		addBehaviour(new WakerBehaviour(this,5000) {
+			
+			protected void handleElapsedTimeout() {
+				// perform operation X
 				DFAgentDescription template = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();
 				sd.setType("Forcefitting-machine-server");
@@ -72,6 +97,7 @@ public class AssemblyAgent extends Agent{
 				}
 				PrintAgentList();
 			}
+
 		});
 		
 		// setup contract net responder
@@ -85,7 +111,7 @@ public class AssemblyAgent extends Agent{
 				CustomerOrder order;
 				try {
 					order = (CustomerOrder) cfp.getContentObject();
-					System.out.println("Agent " + getLocalName() + ": CFP received from " + cfp.getSender().getName()
+					System.out.println("Assembly Agent " + getLocalName() + ": CFP received from " + cfp.getSender().getLocalName()
 							+ ". Order: " + order.getOrder());
 				} catch (UnreadableException e) {
 					// TODO Auto-generated catch block
@@ -97,7 +123,7 @@ public class AssemblyAgent extends Agent{
 					// We provide a proposal
 					//state = 1;
 					proposal = evaluateAction();
-					System.out.println("Agent " + getLocalName() + ": Proposing " + proposal);
+					System.out.println("Assembly Agent " + getLocalName() + ": Proposing " + proposal);
 					ACLMessage propose = cfp.createReply();
 					propose.setPerformative(ACLMessage.PROPOSE);
 					propose.setContent(String.valueOf(proposal));
@@ -112,10 +138,10 @@ public class AssemblyAgent extends Agent{
 			@Override
 			protected ACLMessage handleAcceptProposal(ACLMessage cfp, ACLMessage propose, ACLMessage accept)
 					throws FailureException {
-				System.out.println("Agent " + getLocalName() + ": Proposal accepted");
+				System.out.println("Assembly Agent " + getLocalName() + ": order accepted");
 				if (performAction()) {
 
-					System.out.println("Agent " + getLocalName() + ": Action successfully performed");
+					System.out.println("Assembly Agent " + getLocalName() + ": completed processing the order");
 					ACLMessage inform = accept.createReply();
 					inform.setPerformative(ACLMessage.INFORM);
 					try {
@@ -129,13 +155,13 @@ public class AssemblyAgent extends Agent{
 					}
 					return inform;
 				} else {
-					System.out.println("Agent " + getLocalName() + ": Action execution failed");
+					System.out.println("Assembly Agent " + getLocalName() + ": failed to process the order");
 					throw new FailureException("unexpected-error");
 				}
 			}
 
 			protected void handleRejectProposal(ACLMessage cfp, ACLMessage propose, ACLMessage reject) {
-				System.out.println("Agent " + getLocalName() + ": Proposal rejected");
+				System.out.println("Assembly Agent " + getLocalName() + ": Proposal rejected");
 			}
 		});
 	}
@@ -183,39 +209,40 @@ public class AssemblyAgent extends Agent{
 		public void action() {
 			// TODO Auto-generated method stub
 			int step = 0;
-			switch (step) {
-			case 0: {
-				ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
-				request.addReceiver(assemblyPlaceList.get(0));
-				send(request);
-				step = 1;
-			}
-				break;
-			case 1: {
-				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.AGREE);
-				ACLMessage msg = myAgent.receive(mt);
-				if (msg != null) {
-					String status = msg.getContent();
-					System.out.println("Assembly agent "+myAgent.getLocalName()+":Processing the order");
-					step = 2;
+			if (assemblyPlaceList.size() != 0) {
+				switch (step) {
+				case 0: {
+					ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+					request.addReceiver(assemblyPlaceList.get(0));
+					send(request);
+					step = 1;
 				}
-				else{
+					break;
+				case 1: {
+					MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.AGREE);
+					ACLMessage msg = myAgent.receive(mt);
+					if (msg != null) {
+						String status = msg.getContent();
+						System.out.println("Assembly agent " + myAgent.getLocalName() + ":Processing the order");
+						step = 2;
+					} else {
+						step = 0;
+					}
+
+				}
+					break;
+				case 2: {
+					ACLMessage response = new ACLMessage(ACLMessage.INFORM);
+					response.addReceiver(assemblyPlaceList.get(0));
+					response.setContent("Returing the Forcefitting machine");
+					send(response);
 					step = 0;
+					System.out.println("Assembly agent " + myAgent.getLocalName() + ":Processed the order");
 				}
-				
+					break;
+				}
+
 			}
-				break;
-			case 2: {
-				ACLMessage response = new ACLMessage(ACLMessage.INFORM);
-				response.addReceiver(assemblyPlaceList.get(0));
-				response.setContent("Returing the Forcefitting machine");
-				send(response);
-				step = 0;
-				System.out.println("Assembly agent "+myAgent.getLocalName()+":Processed the order");
-			}
-				break;
-			}
-			
 		}
 		
 	}

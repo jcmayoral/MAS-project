@@ -26,7 +26,7 @@ public class StockAgent extends Agent{
 
 	protected void setup(){
 		
-		System.out.println("Stock Agent:" + getAID().getName() + "is Initialized");
+		System.out.println("Stock Agent:" + getAID().getLocalName() + " is Initialized");
 
 		// register for service
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -46,7 +46,7 @@ public class StockAgent extends Agent{
 	}
 	
 	protected void takeDown() {
-		System.out.println("Stock Agent:" + getAID().getName() + " is Terminated");
+		System.out.println("Stock Agent:" + getAID().getLocalName() + " is Terminated");
 		try {
 			DFService.deregister(this);
 		} catch (FIPAException fe) {

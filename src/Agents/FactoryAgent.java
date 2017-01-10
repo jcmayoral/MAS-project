@@ -7,6 +7,7 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.core.behaviours.ThreadedBehaviourFactory;
 import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import Behaviour.CustomerOrder;
 import Behaviour.FactoryAgentOneshotBehaviour;
 import jade.core.AID;
@@ -34,11 +35,11 @@ public class FactoryAgent extends Agent {
 
 	private List<AID> transportAgents = new ArrayList<AID>();
 	private List<AID> assemblyAgents = new ArrayList<AID>();
-	private List<CustomerOrder> orderQueue = new ArrayList<CustomerOrder>();
+	private List<CustomerOrder> orderList = new ArrayList<CustomerOrder>();
 	
 	protected void setup() {
 
-		System.out.println("Factory Agent:" + getAID().getName() + "is Initialized");
+		System.out.println("Factory Agent:" + getAID().getLocalName() + " is Initialized");
 
 		// register for service
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -55,11 +56,61 @@ public class FactoryAgent extends Agent {
 		}
 
 		// Fetch the list of available transport agents
-		addBehaviour(new OneShotBehaviour(this) {
-
-			@Override
-			public void action() {
-				// TODO Auto-generated method stub
+//		addBehaviour(new OneShotBehaviour(this) {
+//
+//			@Override
+//			public void action() {
+//				// TODO Auto-generated method stub
+//				DFAgentDescription template = new DFAgentDescription();
+//				ServiceDescription sd = new ServiceDescription();
+//				sd.setType("Transport-Items");
+//				template.addServices(sd);
+//
+//				// Fetch Agent List
+//				try {
+//					DFAgentDescription[] result = DFService.search(myAgent, template);
+//					// System.out.println(result.length);
+//					// TransportAgents = new AID[result.length];
+//					for (int i = 0; i < result.length; ++i) {
+//						transportAgents.add(result[i].getName());
+//					}
+//				} catch (FIPAException fe) {
+//					fe.printStackTrace();
+//				}
+//				//PrintAgentList();
+//			}
+//		});
+		
+		// Fetch the list of available Assembly agents
+//		addBehaviour(new OneShotBehaviour(this) {
+//
+//			@Override
+//			public void action() {
+//				// TODO Auto-generated method stub
+//				DFAgentDescription template = new DFAgentDescription();
+//				ServiceDescription sd = new ServiceDescription();
+//				sd.setType("Assemble-Bearing-Box");
+//				template.addServices(sd);
+//
+//				// Fetch Agent List
+//				try {
+//					DFAgentDescription[] result = DFService.search(myAgent, template);
+//					// System.out.println(result.length);
+//					// TransportAgents = new AID[result.length];
+//					for (int i = 0; i < result.length; ++i) {
+//						assemblyAgents.add(result[i].getName());
+//					}
+//				} catch (FIPAException fe) {
+//					fe.printStackTrace();
+//				}
+//				//PrintAgentList();
+//			}
+//		});
+		
+		addBehaviour(new WakerBehaviour(this,5000) {
+			
+			protected void handleElapsedTimeout() {
+				// perform operation X
 				DFAgentDescription template = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();
 				sd.setType("Transport-Items");
@@ -78,14 +129,13 @@ public class FactoryAgent extends Agent {
 				}
 				//PrintAgentList();
 			}
+
 		});
 		
-		// Fetch the list of available Assembly agents
-		addBehaviour(new OneShotBehaviour(this) {
-
-			@Override
-			public void action() {
-				// TODO Auto-generated method stub
+		addBehaviour(new WakerBehaviour(this,5000) {
+			
+			protected void handleElapsedTimeout() {
+				// perform operation X
 				DFAgentDescription template = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();
 				sd.setType("Assemble-Bearing-Box");
@@ -104,8 +154,9 @@ public class FactoryAgent extends Agent {
 				}
 				//PrintAgentList();
 			}
+
 		});
-		PrintAgentList();
+		
 //	      SequentialBehaviour seq = new SequentialBehaviour(this);
 //	      addBehaviour( seq );
 //		// prepare order queue
@@ -154,7 +205,7 @@ public class FactoryAgent extends Agent {
 	}
 
 	protected void takeDown() {
-		System.out.println("Factory Agent:" + getAID().getName() + " is Terminated");
+		System.out.println("Factory Agent:" + getAID().getLocalName() + " is Terminated");
 		try {
 			DFService.deregister(this);
 		} catch (FIPAException fe) {
@@ -183,8 +234,8 @@ public class FactoryAgent extends Agent {
 		@Override
 		protected void onTick() {
 			// TODO Auto-generated method stub
-			if (orderQueue.size() != 0) {
-				CustomerOrder order = orderQueue.get(0);
+			if (orderList.size() != 0 && transportAgents.size() != 0 && assemblyAgents.size() != 0) {
+				CustomerOrder order = orderList.get(0);
 				String orderType = order.getOrder();
 				//for (CustomerOrder order : orderQueue) {
 					// Fill the CFP message
@@ -215,7 +266,7 @@ public class FactoryAgent extends Agent {
 //					Behaviour b = new ContractNetInit(this.getAgent(), msg);
 //					addBehaviour(tbf.wrap(b));
 					myAgent.addBehaviour(new ContractNetInit(this.getAgent(), msg));
-					orderQueue.remove(order);
+					orderList.remove(order);
 				//}
 			} else {
 				System.out.println("Order queue is empty");
@@ -239,8 +290,8 @@ public class FactoryAgent extends Agent {
 					CustomerOrder order;
 					try {
 						order = (CustomerOrder) msg.getContentObject();
-						System.out.println("Received order: " + order + "from :" + sender.getName());
-						orderQueue.add(order);
+						System.out.println(myAgent.getLocalName()+" :Received order: " + order.getOrder() + " from Agent:" + sender.getLocalName());
+						orderList.add(order);
 					} catch (UnreadableException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -262,11 +313,11 @@ public class FactoryAgent extends Agent {
 		}
 
 		protected void handlePropose(ACLMessage propose, Vector v) {
-			System.out.println("Agent " + propose.getSender().getName() + " proposed " + propose.getContent());
+			System.out.println("Agent: " + propose.getSender().getLocalName() + " proposed " + propose.getContent());
 		}
 
 		protected void handleRefuse(ACLMessage refuse) {
-			System.out.println("Agent " + refuse.getSender().getName() + " refused");
+			System.out.println("Agent: " + refuse.getSender().getLocalName() + " refused");
 		}
 
 		protected void handleFailure(ACLMessage failure) {
@@ -275,7 +326,7 @@ public class FactoryAgent extends Agent {
 				// does not exist
 				System.out.println("Responder does not exist");
 			} else {
-				System.out.println("Agent " + failure.getSender().getName() + " failed");
+				System.out.println("Agent: " + failure.getSender().getLocalName() + " failed");
 			}
 			// Immediate failure --> we will not receive a response from
 			// this agent
@@ -310,25 +361,25 @@ public class FactoryAgent extends Agent {
 			}
 			// Accept the proposal of the best proposer
 			if (accept != null) {
-				System.out.println("Accepting proposal " + bestProposal + " from responder " + bestProposer.getName());
+				System.out.println(myAgent.getLocalName()+": Accepting proposal " + bestProposal + " from Agent: " + bestProposer.getLocalName());
 				accept.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 			}
 		}
 
 		protected void handleInform(ACLMessage inform) {
-			System.out
-					.println("Agent " + inform.getSender().getName() + " successfully performed the requested action");
+
 			
 			//remove order from order queue
 			try {
 				CustomerOrder order = (CustomerOrder) inform.getContentObject(); 
-				orderQueue.remove(order);
-	
+				orderList.remove(order);
+				System.out
+				.println(myAgent.getLocalName()+" : Agent: " + inform.getSender().getLocalName() + " successfully processed the order: " + order.getOrder());
 				//inform customer about the delivery
-				AID customer = order.getSenderAID();
-				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-				msg.addReceiver(customer);
-				myAgent.send(msg);
+//				AID customer = order.getSenderAID();
+//				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+//				msg.addReceiver(customer);
+//				myAgent.send(msg);
 				
 			} catch (UnreadableException e) {
 				// TODO Auto-generated catch block

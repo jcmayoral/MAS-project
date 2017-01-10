@@ -10,6 +10,7 @@ import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -20,20 +21,43 @@ import jade.lang.acl.MessageTemplate;
 public class CustomerAgent extends Agent{
 	
 	//private Vector<AID> FactoryAgents = new Vector<AID>();
-	private AID FactoryAgent;
+	private AID FactoryAgent = null;
 	private int interval = 5000;
 	
+	@SuppressWarnings("serial")
 	protected void setup() {
-		System.out.println("Customer Agent:"+getAID().getName()+"is Initialized");
+		System.out.println("Customer Agent:"+getAID().getLocalName()+" is Initialized");
 //		Object[] args = getArguments();
 //		String timeVal  = (String) args[0];
 //		interval = Integer.parseInt(timeVal);
 		// Fetch the list of available factory agents
-		addBehaviour(new OneShotBehaviour(this) {
-
-			@Override
-			public void action() {
-				// TODO Auto-generated method stub
+//		addBehaviour(new OneShotBehaviour(this) {
+//
+//			@Override
+//			public void action() {
+//				// TODO Auto-generated method stub
+//				DFAgentDescription template = new DFAgentDescription();
+//				ServiceDescription sd = new ServiceDescription();
+//				sd.setType("Order-Items");
+//				template.addServices(sd);
+//
+//				// Fetch Agent List
+//				try {
+//					DFAgentDescription[] result = DFService.search(myAgent, template);
+//					FactoryAgent = result[0].getName();
+//
+//				} catch (FIPAException fe) {
+//					fe.printStackTrace();
+//				}
+//				// PrintAgentList();
+//			}
+//		});
+		
+		addBehaviour(new WakerBehaviour(this,5000) {
+			
+			protected void handleElapsedTimeout() {
+				// perform operation X
+				System.out.println("Ran Handle elapsed timeout");
 				DFAgentDescription template = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();
 				sd.setType("Order-Items");
@@ -47,8 +71,8 @@ public class CustomerAgent extends Agent{
 				} catch (FIPAException fe) {
 					fe.printStackTrace();
 				}
-				// PrintAgentList();
 			}
+
 		});
 		
 		addBehaviour(new PlaceOrder(this,interval));
@@ -56,7 +80,7 @@ public class CustomerAgent extends Agent{
 	}
 	
 	protected void takeDown(){
-		System.out.println("Customer Agent:"+getAID().getName()+"is Terminated");		
+		System.out.println("Customer Agent:"+getAID().getLocalName()+"is Terminated");		
 	}
 	
 	private class PlaceOrder extends TickerBehaviour {
@@ -69,17 +93,19 @@ public class CustomerAgent extends Agent{
 		@Override
 		protected void onTick() {
 			// TODO Auto-generated method stub
-			CustomerOrder order = getOrder();
-			try {
-				// place order to factory agents
-				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-				msg.addReceiver(FactoryAgent);
-				msg.setLanguage("English");
-				msg.setContentObject(order);
-				send(msg);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if (FactoryAgent != null) {
+				CustomerOrder order = getOrder();
+				try {
+					// place order to factory agents
+					ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+					msg.addReceiver(FactoryAgent);
+					msg.setLanguage("English");
+					msg.setContentObject(order);
+					send(msg);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 
 		}

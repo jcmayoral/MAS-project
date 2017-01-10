@@ -25,7 +25,7 @@ public class AssemblyPlace extends Agent{
 	
 	protected void setup(){
 		
-		System.out.println("Assembly place:" + getAID().getName() + "is Initialized");
+		System.out.println("Assembly place:" + getAID().getLocalName() + " is Initialized");
 
 		// register for service
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -46,7 +46,7 @@ public class AssemblyPlace extends Agent{
 	
 	protected void takeDown(){
 		
-		System.out.println("Assembly place:" + getAID().getName() + " is Terminated");
+		System.out.println("Assembly place:" + getAID().getLocalName() + " is Terminated");
 		try {
 			DFService.deregister(this);
 		} catch (FIPAException fe) {

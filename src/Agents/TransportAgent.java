@@ -11,6 +11,7 @@ import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -27,7 +28,6 @@ import jade.domain.FIPAAgentManagement.FailureException;
 @SuppressWarnings("serial")
 public class TransportAgent extends Agent {
 
-	private int state = -1;
 	private int proposal;
 	private boolean isStockAvailable = true;
 	
@@ -35,7 +35,7 @@ public class TransportAgent extends Agent {
 
 	protected void setup() {
 
-		System.out.println("Transport Agent:" + getAID().getName() + "is Initialized");
+		System.out.println("Transport Agent:" + getAID().getLocalName() + " is Initialized");
 
 		// Register Agent Services with DF
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -53,11 +53,36 @@ public class TransportAgent extends Agent {
 		
 		
 		// Fetch the list of available Stock agents
-		addBehaviour(new OneShotBehaviour(this) {
-
-			@Override
-			public void action() {
-				// TODO Auto-generated method stub
+//		addBehaviour(new OneShotBehaviour(this) {
+//
+//			@Override
+//			public void action() {
+//				// TODO Auto-generated method stub
+//				DFAgentDescription template = new DFAgentDescription();
+//				ServiceDescription sd = new ServiceDescription();
+//				sd.setType("Stockpile-Info");
+//				template.addServices(sd);
+//
+//				// Fetch Agent List
+//				try {
+//					DFAgentDescription[] result = DFService.search(myAgent, template);
+//					// System.out.println(result.length);
+//					// TransportAgents = new AID[result.length];
+//					for (int i = 0; i < result.length; ++i) {
+//						stockAgents.add(result[i].getName());
+//					}
+//				} catch (FIPAException fe) {
+//					fe.printStackTrace();
+//				}
+//				PrintAgentList();
+//			}
+//		});
+		
+		addBehaviour(new WakerBehaviour(this,5000) {
+			
+			protected void handleElapsedTimeout() {
+				// perform operation X
+				System.out.println("Ran Handle elapsed timeout");
 				DFAgentDescription template = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();
 				sd.setType("Stockpile-Info");
@@ -76,6 +101,7 @@ public class TransportAgent extends Agent {
 				}
 				PrintAgentList();
 			}
+
 		});
 
 		//check stock status
@@ -91,8 +117,8 @@ public class TransportAgent extends Agent {
 				CustomerOrder order;
 				try {
 					order = (CustomerOrder) cfp.getContentObject();
-					System.out.println("Agent " + getLocalName() + ": CFP received from " + cfp.getSender().getName()
-							+ ". Order: " + order.getOrder());
+					System.out.println("TransportAgent " + getLocalName() + ": CFP received from " + cfp.getSender().getLocalName()
+							+ " for Order: " + order.getOrder());
 				} catch (UnreadableException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -103,14 +129,14 @@ public class TransportAgent extends Agent {
 					// We provide a proposal
 					//state = 1;
 					proposal = evaluateAction();
-					System.out.println("Agent " + getLocalName() + ": Proposing " + proposal);
+					System.out.println("Transport Agent: " + getLocalName() + ": Proposing " + proposal);
 					ACLMessage propose = cfp.createReply();
 					propose.setPerformative(ACLMessage.PROPOSE);
 					propose.setContent(String.valueOf(proposal));
 					return propose;
 				} else {
 					// We refuse to provide a proposal
-					System.out.println("Agent " + getLocalName() + ": Refuse");
+					System.out.println("Transport Agent: " + getLocalName() + ": Refuse");
 					throw new RefuseException("evaluation-failed");
 				}
 			}
@@ -118,11 +144,10 @@ public class TransportAgent extends Agent {
 			@Override
 			protected ACLMessage handleAcceptProposal(ACLMessage cfp, ACLMessage propose, ACLMessage accept)
 					throws FailureException {
-				System.out.println("Agent " + getLocalName() + ": Proposal accepted");
-				state = -1;
+				System.out.println("Transport Agent: " + getLocalName() + ": order accepted");
 				if (performAction()) {
 
-					System.out.println("Agent " + getLocalName() + ": Action successfully performed");
+					System.out.println("Transport Agent: " + getLocalName() + ": Completed processing the order");
 					ACLMessage inform = accept.createReply();
 					inform.setPerformative(ACLMessage.INFORM);
 					try {
@@ -136,20 +161,19 @@ public class TransportAgent extends Agent {
 					}
 					return inform;
 				} else {
-					System.out.println("Agent " + getLocalName() + ": Action execution failed");
+					System.out.println("Transport Agent: " + getLocalName() + ": Action execution failed");
 					throw new FailureException("unexpected-error");
 				}
 			}
 
 			protected void handleRejectProposal(ACLMessage cfp, ACLMessage propose, ACLMessage reject) {
-				state = -1;
-				System.out.println("Agent " + getLocalName() + ": Proposal rejected");
+				System.out.println("Transport Agent: " + getLocalName() + ": Proposal rejected");
 			}
 		});
 	}
 
 	protected void takeDown() {
-		System.out.println("Transport Agent:" + getAID().getName() + " is Terminated");
+		System.out.println("Transport Agent:" + getAID().getLocalName() + " is Terminated");
 		try {
 			DFService.deregister(this);
 		} catch (FIPAException fe) {
@@ -169,31 +193,32 @@ public class TransportAgent extends Agent {
 		protected void onTick() {
 			// TODO Auto-generated method stub
 			int step = 0;
-			switch (step) {
-			case 0: {
-				ACLMessage checkStock = new ACLMessage(ACLMessage.REQUEST);
-				checkStock.addReceiver(stockAgents.get(0));
-				send(checkStock);
-				step = 1;
-			}
-				break;
-			case 1: {
-				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-				ACLMessage msg = myAgent.receive(mt);
-				if (msg != null) {
-					String status = msg.getContent();
-					if(status.compareTo("available") == 0){
-						isStockAvailable = true;
-					}
-					else{
-						isStockAvailable = false;
-					}
+			if (stockAgents.size() != 0) {
+				switch (step) {
+				case 0: {
+					ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+					request.addReceiver(stockAgents.get(0));
+					send(request);
+					step = 1;
 				}
-				step = 0;
+					break;
+				case 1: {
+					MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+					ACLMessage msg = myAgent.receive(mt);
+					if (msg != null) {
+						String status = msg.getContent();
+						if (status.compareTo("available") == 0) {
+							isStockAvailable = true;
+						} else {
+							isStockAvailable = false;
+						}
+					}
+					step = 0;
+				}
+					break;
+				}
+
 			}
-				break;
-			}
-			
 		}
 
 
