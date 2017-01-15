@@ -269,7 +269,7 @@ public class FactoryAgent extends Agent {
 					orderList.remove(order);
 				//}
 			} else {
-				System.out.println("Order queue is empty");
+				System.out.println(myAgent.getLocalName()+" :Order queue is empty");
 			}
 		}
 
@@ -372,6 +372,7 @@ public class FactoryAgent extends Agent {
 			//remove order from order queue
 			try {
 				CustomerOrder order = (CustomerOrder) inform.getContentObject(); 
+				if(order != null){
 				orderList.remove(order);
 				System.out
 				.println(myAgent.getLocalName()+" : Agent: " + inform.getSender().getLocalName() + " successfully processed the order: " + order.getOrder());
@@ -380,6 +381,7 @@ public class FactoryAgent extends Agent {
 //				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 //				msg.addReceiver(customer);
 //				myAgent.send(msg);
+				}
 				
 			} catch (UnreadableException e) {
 				// TODO Auto-generated catch block

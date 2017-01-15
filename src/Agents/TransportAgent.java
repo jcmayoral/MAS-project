@@ -117,7 +117,7 @@ public class TransportAgent extends Agent {
 				CustomerOrder order;
 				try {
 					order = (CustomerOrder) cfp.getContentObject();
-					System.out.println("TransportAgent " + getLocalName() + ": CFP received from " + cfp.getSender().getLocalName()
+					System.out.println("TransportAgent " + getLocalName() + ": CFP received from Agent:" + cfp.getSender().getLocalName()
 							+ " for Order: " + order.getOrder());
 				} catch (UnreadableException e) {
 					// TODO Auto-generated catch block

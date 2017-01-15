@@ -65,7 +65,7 @@ public class StockAgent extends Agent{
 			if (msg != null) {
 				if (msg.getPerformative() == ACLMessage.REQUEST) {
 					AID sender = msg.getSender();
-					System.out.println("Stock available");
+					System.out.println(myAgent.getLocalName()+" :Stock available");
 					ACLMessage response = new ACLMessage(ACLMessage.INFORM);
 					response.addReceiver(sender);
 					response.setContent("available");

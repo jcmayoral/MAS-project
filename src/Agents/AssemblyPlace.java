@@ -66,7 +66,7 @@ public class AssemblyPlace extends Agent{
 			if (msg != null) {
 				if (msg.getPerformative() == ACLMessage.REQUEST) {
 					AID sender = msg.getSender();
-					System.out.println("Forcefitting-machine assigned to Agent:"+ sender.getLocalName());
+					System.out.println(myAgent.getLocalName()+" :Forcefitting-machine assigned to Agent:"+ sender.getLocalName());
 					ACLMessage response = new ACLMessage(ACLMessage.AGREE);
 					response.addReceiver(sender);
 					response.setContent("available");
@@ -74,6 +74,9 @@ public class AssemblyPlace extends Agent{
 					block();
 
 				}
+//				else if(msg.getPerformative() == ACLMessage.INFORM){
+//					System.out.println("Forcefitting-machine returned from Agent:"+ msg.getSender().getLocalName());
+//				}
 			} 
 		}
 
