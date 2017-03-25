@@ -1,9 +1,0 @@
-Jose Bearing 1
-Paul Bearing 2
-Nico Bearing 3
-Jose Bearing 4
-Paul Bearing 5
-Nico Bearing 6
-Jose Bearing 7
-Paul Bearing 8
-Nico Bearing 9
